@@ -197,8 +197,8 @@ def RSCG(eps,n_omega,left_i,right_j,vec_sigma,A,Ln):
     vec_Theta = np.zeros(n_omega, dtype=np.complex)
     vec_Pi = np.ones(n_omega, dtype=np.complex)*Sigma
 
-    a = -A.todense()    
-    x = np.linalg.solve(a, vec_b)
+#    a = -A.todense()    
+#    x = np.linalg.solve(a, vec_b)
     ep = 1e-15
 
     while hi > eps:
@@ -372,8 +372,8 @@ def main():
 #        print("test")
 
     nc = 1000
-    nx = 6
-    ny = 6
+    nx = 10
+    ny = 10
     vec_delta = init_delta(nx,ny,0.1)
     mu = -1.0
     A = calc_A(nx,ny,mu,vec_delta,10.0)
