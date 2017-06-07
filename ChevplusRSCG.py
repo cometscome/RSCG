@@ -8,6 +8,7 @@ import time
 
 
 
+
 def xy2i(ix,iy,Nx):
     ii = (iy)*Nx+ix
     return ii
@@ -172,9 +173,7 @@ def iteration(nc,Nx,Ny,aa,bb,omegac,U,full,mu):
 
 
 def RSCG(eps,n_omega,left_i,right_j,vec_sigma,A,Ln):
-    
-    ci = 1j
-    
+    #--Line 2 in Table III.
     vec_x = np.zeros(Ln)
     vec_b =   np.zeros(Ln)
     vec_b[right_j] = 1.0
@@ -182,48 +181,56 @@ def RSCG(eps,n_omega,left_i,right_j,vec_sigma,A,Ln):
     vec_p = np.zeros(Ln)
     vec_r[right_j] = 1.0
     vec_p[right_j] = 1.0
+    alpham = 1.0
+    betam = 0.0
+    #--
+
+    
+    Sigma = vec_b[left_i] #Line 3. Sigma=V.b. V=v1^T, v1^T=e(j)^T = (0,0,0,0,...,1,...,0,0,0)
+    #---Initialization of arrays
     vec_Ap = np.zeros(Ln)
-    Sigma = vec_b[left_i]
     vec_g = np.zeros(n_omega, dtype=np.complex)
     vec_rhok = np.ones(n_omega, dtype=np.complex)
     vec_rhokp = np.ones(n_omega, dtype=np.complex)    
     vec_rhokm = np.ones(n_omega, dtype=np.complex)
     vec_alpha = np.zeros(n_omega, dtype=np.complex)
     vec_beta = np.zeros(n_omega, dtype=np.complex)
-    flag = True
-    hi = 1.0
-    alpham = 1.0
-    betam = 0.0
     vec_Theta = np.zeros(n_omega, dtype=np.complex)
     vec_Pi = np.ones(n_omega, dtype=np.complex)*Sigma
+    #---
+    flag = True
+    hi = 1.0
+
+
 
 #    a = -A.todense()    
 #    x = np.linalg.solve(a, vec_b)
     ep = 1e-15
 
     while hi > eps:
-        vec_Ap = -A.dot(vec_p)
-#        print np.dot(vec_p,vec_Ap)
-        rsum = np.dot(vec_r,vec_r)
-        alpha = rsum/np.dot(vec_p,vec_Ap)
+        vec_Ap = -A.dot(vec_p) # A pk = (-H).pk
+        rsum = np.dot(vec_r,vec_r) #(rk,rk)
+        alpha = rsum/np.dot(vec_p,vec_Ap) #Line 6 (rk,rk)/(pk,A pk)
 #        print alpha,rsum
-        vec_x += alpha*vec_p
-        vec_r += - alpha*vec_Ap
-        beta = np.dot(vec_r,vec_r)/rsum
-        vec_p = vec_r + beta*vec_p
-        Sigma = vec_r[left_i]
+        vec_x += alpha*vec_p #Line 7
+        vec_r += - alpha*vec_Ap #Line 8
+        beta = np.dot(vec_r,vec_r)/rsum #Line9 (r_{k+1},r_{k+1})/(rk,rk)
+        vec_p = vec_r + beta*vec_p #Line 10
+        Sigma = vec_r[left_i] #Line 11 Sigma=V.r_{k+1}
 
 
 #        index = vec_rhok > ep
-        vec_rhokp = np.where(vec_rhok > ep,vec_rhok*vec_rhokm*alpham/(vec_rhokm*alpham*(1.0+alpha*vec_sigma)+alpha*betam*(vec_rhokm-vec_rhok)),vec_rhok)
-        vec_alpha = np.where(vec_rhok> ep, alpha*vec_rhokp/vec_rhok,0.0)
-        vec_Theta = vec_Theta+vec_alpha*vec_Pi
-        vec_beta = np.where(vec_rhok > ep,((vec_rhokp/vec_rhok)**2)*beta,1.0)
-        vec_Pi = np.where(vec_rhok > ep,vec_rhokp*Sigma+ vec_beta*vec_Pi,vec_Pi)
+        #---- Lines 12-17
+        vec_rhokp = np.where(vec_rhok > ep,vec_rhok*vec_rhokm*alpham/(vec_rhokm*alpham*(1.0+alpha*vec_sigma)+alpha*betam*(vec_rhokm-vec_rhok)),vec_rhok) #Line 13
+        vec_alpha = np.where(vec_rhok> ep, alpha*vec_rhokp/vec_rhok,0.0) #Line 14
+        vec_Theta = vec_Theta+vec_alpha*vec_Pi #Line 15
+        vec_beta = np.where(vec_rhok > ep,((vec_rhokp/vec_rhok)**2)*beta,1.0) #Line 16
+        vec_Pi = np.where(vec_rhok > ep,vec_rhokp*Sigma+ vec_beta*vec_Pi,vec_Pi) #Line 17
 
         vec_g = vec_Theta
         vec_rhokm = vec_rhok
         vec_rhok = vec_rhokp
+        #----
 
         alpham = alpha
         betam = beta
@@ -278,7 +285,7 @@ def calc_meanfields(nc,A,Nx,Ny,Ln,aa,bb,omegac):
 
 def calc_meanfields_full(nc,A,Nx,Ny,Ln,aa,bb,omegac):    
     a = A.todense()*aa
-    w, v = linalg.eigh(a, lower=True, eigvals_only=False, overwrite_a=False, eigvals=None, check_finite=True)    
+    w, v = linalg.eigh(a, lower=True, eigvals_only=False, overwrite_a=False, eigvals=None)
     vec_delta = lil_matrix((Nx*Ny,Nx*Ny))
     for ix in range(Nx):
         for iy in range(Ny):
@@ -297,7 +304,7 @@ def calc_meanfields_full(nc,A,Nx,Ny,Ln,aa,bb,omegac):
 
 def calc_meanfields_full_finite(nc,A,Nx,Ny,Ln,T,omegamax):    
     a = A.todense()
-    w, v = linalg.eigh(a, lower=True, eigvals_only=False, overwrite_a=False, eigvals=None, check_finite=True)    
+    w, v = linalg.eigh(a, lower=True, eigvals_only=False, overwrite_a=False, eigvals=None)
     vec_delta = lil_matrix((Nx*Ny,Nx*Ny))
     for ix in range(Nx):
         for iy in range(Ny):
@@ -387,7 +394,7 @@ def main():
 
 
     a = A.todense()
-    w, v = linalg.eigh(a, lower=True, eigvals_only=False, overwrite_a=False, eigvals=None, check_finite=True)
+    w, v = linalg.eigh(a, lower=True, eigvals_only=False, overwrite_a=False, eigvals=None)
 #    print(w 
 
     vec_ai = calc_polynomials(nc,1,1+nx*ny,A,nx*ny*2)
